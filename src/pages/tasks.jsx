@@ -117,3 +117,5 @@ export function TasksPage() {
     </div>
   )
 }
+
+export default TasksPage;

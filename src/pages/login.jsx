@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
+import { Link } from "react-router-dom"
 
-export function LoginPage() {
+function LoginPage() {
     const { signIn } = useAuth()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -74,7 +75,16 @@ export function LoginPage() {
                         {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
                     </button>
                 </form>
+
+                <p className="text-center text-sm text-gray-600">
+                    ¿No tienes cuenta?{' '}
+                    <Link to="/register" className="text-primary hover:underline">
+                        Regístrate aquí
+                    </Link>
+                </p>
             </div>
         </div>
     )
 }
+
+export default LoginPage;

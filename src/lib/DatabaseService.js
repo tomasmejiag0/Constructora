@@ -12,6 +12,11 @@ export const DatabaseService = {
     },
 
     async createProfile(profileData) {
+        const allowedRoles = ['Supervisor', 'Trabajador', 'Administrador'];
+        if (!allowedRoles.includes(profileData.role)) {
+            return { error: 'Rol inválido. Debe ser Supervisor, Trabajador o Administrador.' };
+        }
+    
         const { data, error } = await supabase
             .from('profiles')
             .insert([{
@@ -23,9 +28,10 @@ export const DatabaseService = {
                 email: profileData.email,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
-            }])
-        return { data, error }
+            }]);
+        return { data, error };
     },
+    
 
     async updateProfile(userId, updates) {
         const { data, error } = await supabase
