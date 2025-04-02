@@ -1,4 +1,3 @@
-
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -7,7 +6,7 @@ import { useBudget } from "@/hooks/use-budget"
 import { useToast } from "@/components/ui/use-toast"
 import { formatCurrency, formatDate } from "@/lib/utils"
 
-export function BudgetPage() {
+export default function BudgetPage() {
   const { budget, addExpense, updateExpense, deleteExpense, setTotalBudget } = useBudget()
   const { toast } = useToast()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -72,9 +71,7 @@ export function BudgetPage() {
     <div className="p-8 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Gestión de Presupuesto</h1>
-        <Button onClick={handleAddNew}>
-          Nuevo Gasto
-        </Button>
+        <Button onClick={handleAddNew}>Nuevo Gasto</Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -116,18 +113,10 @@ export function BudgetPage() {
                 <p className="text-sm">Fecha: {formatDate(expense.date)}</p>
                 <p className="text-sm">Categoría: {expense.category}</p>
                 <div className="flex space-x-2 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(expense)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(expense)}>
                     Editar
                   </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(expense.id)}
-                  >
+                  <Button variant="destructive" size="sm" onClick={() => handleDelete(expense.id)}>
                     Eliminar
                   </Button>
                 </div>

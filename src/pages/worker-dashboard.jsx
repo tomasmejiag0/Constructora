@@ -10,6 +10,7 @@ import { useTasks } from "@/hooks/use-tasks"
 import { useTaskAttendance } from "@/hooks/use-task-attendance"
 import { formatDate } from "@/lib/utils"
 import { TaskAttendanceButton } from "@/components/tasks/task-attendance-button"
+import Dashboard from "./dashboard"
 
 export function WorkerDashboard() {
   const { user, logout } = useAuth()
@@ -198,3 +199,6 @@ export function WorkerDashboard() {
     </div>
   )
 }
+
+
+export default WorkerDashboard;

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -6,7 +5,7 @@ import { InventoryDialog } from "@/components/inventory/inventory-dialog"
 import { useInventory } from "@/hooks/use-inventory"
 import { useToast } from "@/components/ui/use-toast"
 
-export function InventoryPage() {
+function InventoryPage() {
   const { inventory, addItem, updateItem, deleteItem } = useInventory()
   const { toast } = useToast()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -109,3 +108,5 @@ export function InventoryPage() {
     </div>
   )
 }
+
+export default InventoryPage;

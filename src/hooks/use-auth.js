@@ -1,67 +1,77 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { DatabaseService } from '@/lib/DatabaseService'
+import { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { DatabaseService } from '@/lib/DatabaseService';
 
-const AuthContext = createContext({})
+const AuthContext = createContext({});
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null)
-    const [loading, setLoading] = useState(true)
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check active sessions and sets the user
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        const checkSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-                setUser(session.user)
+                const { data: profile } = await DatabaseService.getProfile(session.user.id);
+                setUser({ ...session.user, role: profile?.role || null });
             }
-            setLoading(false)
-        })
+            setLoading(false);
+        };
+        
+        checkSession();
 
-        // Listen for changes on auth state (sign in, sign out, etc.)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session?.user) {
-                const { data: profile } = await DatabaseService.getProfile(session.user.id)
-                setUser({ ...session.user, ...profile })
+                const { data: profile } = await DatabaseService.getProfile(session.user.id);
+                setUser({ ...session.user, role: profile?.role || null });
             } else {
-                setUser(null)
+                setUser(null);
             }
-            setLoading(false)
-        })
+            setLoading(false);
+        });
 
-        return () => subscription.unsubscribe()
-    }, [])
+        return () => {
+            if (listener?.subscription) {
+                listener.subscription.unsubscribe();
+            }
+        };
+    }, []);
 
     const signUp = async (email, password) => {
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
-        })
-        return { data, error }
-    }
+        });
+        return { data, error };
+    };
 
     const signIn = async (email, password) => {
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
-        })
-        return { data, error }
-    }
+        });
+        if (data?.user) {
+            const { data: profile } = await DatabaseService.getProfile(data.user.id);
+            setUser({ ...data.user, role: profile?.role || null });
+        }
+        return { data, error };
+    };
 
     const signOut = async () => {
-        const { error } = await supabase.auth.signOut()
+        const { error } = await supabase.auth.signOut();
         if (!error) {
-            setUser(null)
+            setUser(null);
         }
-        return { error }
-    }
+        return { error };
+    };
 
     const updateProfile = async (updates) => {
-        const { data, error } = await DatabaseService.updateProfile(user.id, updates)
+        const { data, error } = await DatabaseService.updateProfile(user.id, updates);
         if (data) {
-            setUser((prev) => ({ ...prev, ...data }))
+            setUser((prev) => ({ ...prev, ...data }));
         }
-        return { data, error }
-    }
+        return { data, error };
+    };
 
     const value = {
         user,
@@ -70,19 +80,19 @@ export function AuthProvider({ children }) {
         signIn,
         signOut,
         updateProfile,
-    }
+    };
 
     return (
         <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
-    )
+    );
 }
 
 export const useAuth = () => {
-    const context = useContext(AuthContext)
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider')
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
     }
-    return context
-}
+    return context;
+};

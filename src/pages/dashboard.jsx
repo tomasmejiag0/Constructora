@@ -1,11 +1,10 @@
-
 import React from "react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { WelcomeCard } from "@/components/dashboard/welcome-card"
 import { StatsCards } from "@/components/dashboard/stats-cards"
 import { useAuth } from "@/hooks/use-auth"
 
-export function Dashboard() {
+function Dashboard() {
   const { user, logout } = useAuth()
 
   if (!user) {
@@ -33,3 +32,5 @@ export function Dashboard() {
     </div>
   )
 }
+
+export default Dashboard;
