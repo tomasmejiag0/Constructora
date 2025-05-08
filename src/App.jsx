@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "@/pages/login";
 import { Dashboard } from "@/pages/dashboard";
@@ -21,6 +21,15 @@ const ROUTE_PERMISSIONS = {
 function AppContent() {
   const { user, profile, loading } = useAuth();
 
+  useEffect(() => {
+    // Clear localStorage except for essential auth data
+    const authData = localStorage.getItem('sb-lmfqpfajddfzrtqnbnyj-auth-token');
+    localStorage.clear();
+    if (authData) {
+      localStorage.setItem('sb-lmfqpfajddfzrtqnbnyj-auth-token', authData);
+    }
+  }, []);
+
   if (loading) {
     return <LoadingScreen />;
   }
@@ -35,9 +44,6 @@ function AppContent() {
 
   const userRole = profile?.role.toLowerCase();
   const allowedRoutes = ROUTE_PERMISSIONS[userRole] || [];
-  
-  console.log("Rol del usuario:", profile?.role); // ← Verifica el rol
-  console.log("Rutas permitidas:", ROUTE_PERMISSIONS[profile?.role.toLowerCase()]); // ← Verifica las rutas
 
   if (!allowedRoutes.includes(location.pathname)) {
     return <Navigate to={allowedRoutes[0] || "/"} />;
