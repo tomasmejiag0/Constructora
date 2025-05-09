@@ -1,4 +1,3 @@
-// components/loading-screen.jsx
 import React, { useEffect } from 'react';
 import { Loader2 } from "lucide-react";
 
