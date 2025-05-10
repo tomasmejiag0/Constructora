@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
+import bcrypt from 'bcryptjs';
 
 const handleSupabaseError = (error, context) => {
   console.error(`Supabase error in ${context}:`, error.message, error.details || error.stack || error);
@@ -18,66 +19,72 @@ export const loginWithProfile = async (email, password) => {
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') { // PostgREST error for "Not a single row"
+      if (error.code === 'PGRST116') {
         throw new Error('User not found.');
       }
-      throw error; // Rethrow other Supabase errors
+      throw error;
     }
 
-    if (data && data.password === password) { // UNSAFE: Password check
-      const userSession = {
-        id: data.id,
-        email: data.email,
-        name: data.name,
-        role: data.role,
-        status: data.status,
-      };
-      localStorage.setItem('userSession', JSON.stringify(userSession));
-      return userSession;
-    } else {
+    const isValidPassword = await bcrypt.compare(password, data.password_hash);
+    if (!isValidPassword) {
       throw new Error('Invalid email or password.');
     }
+
+    const userSession = {
+      id: data.id,
+      email: data.email,
+      name: data.name,
+      role: data.role,
+      status: data.status,
+    };
+
+    // Store session data in cookies
+    const sessionId = uuidv4();
+    document.cookie = `sessionId=${sessionId}; path=/; secure; samesite=strict; max-age=86400`;
+    document.cookie = `userData=${JSON.stringify(userSession)}; path=/; secure; samesite=strict; max-age=86400`;
+
+    return userSession;
   } catch (error) {
     handleSupabaseError(error, 'loginWithProfile');
   }
 };
 
 export const logoutProfile = () => {
-  localStorage.removeItem('userSession');
+  document.cookie = 'sessionId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  document.cookie = 'userData=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 };
 
 export const getProfileSession = () => {
-  const sessionData = localStorage.getItem('userSession');
-  if (sessionData) {
-    try {
-      return JSON.parse(sessionData);
-    } catch (e) {
-      console.error("Error parsing user session from localStorage", e);
-      localStorage.removeItem('userSession');
-      return null;
-    }
+  const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    acc[key] = value;
+    return acc;
+  }, {});
+
+  if (!cookies.userData) return null;
+
+  try {
+    return JSON.parse(decodeURIComponent(cookies.userData));
+  } catch (error) {
+    console.error('Error parsing user data from cookie:', error);
+    return null;
   }
-  return null;
 };
 
 export const createProfileUser = async (userData) => {
   try {
-    // 1. Crear usuario en Supabase Auth
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: userData.email,
-      password: userData.password,
-      email_confirm: true,
-    });
-    if (authError) throw authError;
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(userData.password, salt);
 
-    // 2. Crear perfil en la tabla profiles usando el id del usuario Auth
     const profileData = {
-      id: authUser.user.id,
+      id: uuidv4(),
       name: userData.name,
       email: userData.email,
+      password_hash: passwordHash,
       role: userData.role,
       status: 'Active',
     };
+
     const { data, error } = await supabase
       .from('profiles')
       .insert([profileData])
@@ -85,10 +92,11 @@ export const createProfileUser = async (userData) => {
       .single();
 
     if (error) throw error;
-    return data;
+    
+    const { password_hash, ...userWithoutPassword } = data;
+    return userWithoutPassword;
   } catch (error) {
     handleSupabaseError(error, 'createProfileUser');
-    throw error;
   }
 };
 
@@ -100,10 +108,10 @@ export const checkUserExistsByEmail = async (email) => {
       .eq('email', email)
       .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') { // Allow "Not a single row"
+    if (error && error.code !== 'PGRST116') {
       throw error;
     }
-    return data; // Returns profile if exists, null otherwise
+    return data;
   } catch (error) {
     handleSupabaseError(error, 'checkUserExistsByEmail');
   }
@@ -137,12 +145,19 @@ export const fetchAllUsersAdminService = async () => {
 
 export const upsertProfileService = async (profileData) => {
   try {
-    const { id, ...updateData } = profileData;
+    const { id, password, ...updateData } = profileData;
+    
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(password, salt);
+      updateData.password_hash = passwordHash;
+    }
+
     const { data, error } = await supabase
       .from('profiles')
       .update(updateData)
       .eq('id', id)
-      .select()
+      .select('id, name, email, role, status')
       .single();
       
     if (error) throw error;
