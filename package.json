@@ -8,6 +8,6 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "vite": "^5.2.0" // versión puede variar
+    "vite": "^5.2.0" 
   }
 }
